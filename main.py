@@ -109,8 +109,8 @@ def mlp_classifier(X, Y):
     f = open("/data/outputs/result.txt", "w")
     f.write('Predictions: '+str(predictions))
     f.write('Accuracy: '+str(accuracy))
-    f.write('Confusion Matrix: \n',str(cm))
-    f.write('Classification Report: \n',str(report))    
+    f.write('Confusion Matrix: \n' + str(cm))
+    f.write('Classification Report: \n', + str(report))    
     f.close()
 
 def naive_bayes(X, Y):
