@@ -129,42 +129,11 @@ def naive_bayes(X, Y):
     f.close()
 
 
-def get_job_details():
-    """Reads in metadata information about assets used by the algo"""
-    job = dict()
-    job['dids'] = json.loads(os.getenv('DIDS', None))
-    job['metadata'] = dict()
-    job['files'] = dict()
-    job['algo'] = dict()
-    job['secret'] = os.getenv('secret', None)
-    algo_did = os.getenv('TRANSFORMATION_DID', None)
-    if job['dids'] is not None:
-        for did in job['dids']:
-            # get the ddo from disk
-            filename = '/data/ddos/' + did
-            print(f'Reading json from {filename}')
-            with open(filename) as json_file:
-                ddo = json.load(json_file)
-                # search for metadata service
-                for service in ddo['service']:
-                    if service['type'] == 'metadata':
-                        job['files'][did] = list()
-                        index = 0
-                        for file in service['attributes']['main']['files']:
-                            job['files'][did].append(
-                                '/data/inputs/' + did + '/' + str(index))
-                            index = index + 1
-    if algo_did is not None:
-        job['algo']['did'] = algo_did
-        job['algo']['ddo_path'] = '/data/ddos/' + algo_did
-    return job, did
-
-
 
 if __name__ == '__main__':
 
-    job, did = get_job_details()
-    print(did)
+    job = get_job_details()
+    did = job['algo']['did']
     X, Y = preprocess_data(job)
 
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'decision_tree', 
