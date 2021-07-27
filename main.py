@@ -1,31 +1,25 @@
-#Decision Tree Classification
 import numpy as np
 import os
 import time
 import json
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn import metrics
+from sklearn.metrics import classification_report,accuracy_score,confusion_matrix
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler,LabelEncoder,scale
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import classification_report,confusion_matrix
-from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn import svm
-from sklearn import metrics
+from sklearn.svm import SVR
 from sklearn import linear_model
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import scale
-from sklearn.ensemble import RandomForestRegressor
-
 import pickle
 
 def get_job_details():
@@ -119,21 +113,19 @@ def mlp_classifier(X, Y):
     with open('/data/outputs/filename.pkl', 'wb') as f:
         pickle.dump(MLPobj, f)
     f = open("/data/outputs/result.txt", "w")
-    f.write('Predictions: '+str(predictions))
-    f.write('Accuracy: '+str(accuracy))
+    f.write('Predictions: ' + str(predictions))
+    f.write('Accuracy: ' + str(accuracy))
     f.write('Confusion Matrix: \n' + str(cm))
-    f.write('Classification Report: \n', + str(report))    
+    f.write('Classification Report: \n' + str(report))    
     f.close()
 
 def naive_bayes(X, Y):
-    # Train the model
+
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
     model = GaussianNB()
     model.fit(X_train, y_train)
-    # Make predictions
     expected = y_test
     predicted = model.predict(X_test)
-    # Evaluate the predictions
     accuracy = accuracy_score(expected, predicted)
 
     f = open("/data/outputs/result.txt", "w")
@@ -158,11 +150,8 @@ def knn(X, Y):
 
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-    print("model training")
-    # Train the model
     knn = KNeighborsClassifier(n_neighbors=3)
     knn.fit(X_train, y_train)
-
     prediction = knn.predict(X_test)
     print("Accuracy: ", accuracy_score(y_test, prediction))
 
@@ -179,7 +168,6 @@ def linear_regression(X, Y):
 
     Y_Pred = regressor.predict(X_Test)
     
-    """ Print that number to output to generate algo output"""
     f = open("/data/outputs/result.txt", "w")
     f.write(str(Y_Pred))
     f.close()
@@ -189,8 +177,6 @@ def logistic_regression(X, Y):
 
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-    print("model training")
-    # Train the model
     logreg = LogisticRegression(C=1e5)
     logreg.fit(X_train, y_train)
 
@@ -201,7 +187,7 @@ def logistic_regression(X, Y):
     f.write(str(prediction))
     f.close()
 
-def MLP_Regressor(job_details):
+def MLP_Regressor(X,Y):
 
     # Split the data into training and testing sets
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
@@ -230,7 +216,6 @@ def svm_classification(X, Y):
 
 def random_forest_regressor(X, Y):
 
-    # split the data into training and testing sets
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
     regr = RandomForestRegressor(n_estimators=100, max_depth=2)
     regr.fit(X_train.values.reshape(-1,1), Y_train)
@@ -240,7 +225,7 @@ def random_forest_regressor(X, Y):
     f.write(str(Y_pred))
     f.close()
 
-def SVR(X, Y):
+def svr(X, Y):
 
     sc_X = StandardScaler()
     sc_y = StandardScaler()
@@ -265,7 +250,16 @@ if __name__ == '__main__':
 
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'decision_tree', 
                    '2907E1f782f59C7B515c80B2DDB9DaC388F377F5': 'mlp_classifier', 
-                   '2': 'naive_bayes'}
+                   '2': 'naive_bayes',
+                   '3': 'k_means',
+                   '4': 'knn',
+                   '5': 'linear_regression',
+                   '6': 'logistic_regression',
+                   '7': 'MLP_Regressor',
+                   '8': 'svm_classification',
+                   '9': 'random_forest_regressor',
+                   '10': 'svr'
+                   }
 
     algo = did_mapping[did]
 
@@ -275,6 +269,21 @@ if __name__ == '__main__':
         mlp_classifier(X,Y)
     elif(algo == 'naive_bayes'):
         naive_bayes(X, Y)
-
+    elif(algo == 'k_means'):
+        k_means(X)
+    elif(algo == 'knn'):
+        knn(X, Y)
+    elif(algo == 'linear_regression'):
+        linear_regression(X, Y)
+    elif(algo == 'logistic_regression'):
+        logistic_regression(X, Y)
+    elif(algo == 'MLP_Regressor'):
+        MLP_Regressor(X, Y)
+    elif(algo == 'svm_classification'):
+        svm_classification(X, Y)
+    elif(algo == 'random_forest_regressor'):
+        random_forest_regressor(X, Y)
+    elif(algo == 'svr'):
+        svr(X, Y)
 
 
