@@ -164,6 +164,7 @@ def get_job_details():
 if __name__ == '__main__':
 
     job, did = get_job_details()
+    print(did)
     X, Y = preprocess_data(job)
 
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'decision_tree', 
