@@ -14,6 +14,18 @@ from sklearn.metrics import classification_report,confusion_matrix
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score
+from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPRegressor
+from sklearn import svm
+from sklearn import metrics
+from sklearn import linear_model
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import scale
+from sklearn.ensemble import RandomForestRegressor
+
 import pickle
 
 def get_job_details():
@@ -128,6 +140,121 @@ def naive_bayes(X, Y):
     f.write(str(predicted))
     f.close()
 
+def k_means(X):
+    wcss = []
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
+        kmeans.fit(X)
+        wcss.append(kmeans.inertia_)
+        
+    kmeans = KMeans(n_clusters = 3, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
+    y_kmeans = kmeans.fit_predict(X)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(y_kmeans))
+    f.close()
+
+def knn(X, Y):
+
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+    print("model training")
+    # Train the model
+    knn = KNeighborsClassifier(n_neighbors=3)
+    knn.fit(X_train, y_train)
+
+    prediction = knn.predict(X_test)
+    print("Accuracy: ", accuracy_score(y_test, prediction))
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(prediction))
+    f.close()
+
+def linear_regression(X, Y):
+    
+    X_Train, X_Test, Y_Train, Y_Test = train_test_split(X, Y, test_size = 1/3, random_state = 0)
+
+    regressor = LinearRegression()
+    regressor.fit(X_Train, Y_Train)
+
+    Y_Pred = regressor.predict(X_Test)
+    
+    """ Print that number to output to generate algo output"""
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(Y_Pred))
+    f.close()
+
+
+def logistic_regression(X, Y):
+
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+    print("model training")
+    # Train the model
+    logreg = LogisticRegression(C=1e5)
+    logreg.fit(X_train, y_train)
+
+    prediction = logreg.predict(X_test)
+    print("Accuracy: ", accuracy_score(y_test, prediction))
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(prediction))
+    f.close()
+
+def MLP_Regressor(job_details):
+
+    # Split the data into training and testing sets
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+    regr = MLPRegressor(random_state = 1, max_iter = 500)
+    regr.fit(X_train, Y_train)
+    prediction = regr.predict(X_test)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(prediction))
+    f.close()
+
+def svm_classification(X, Y):
+
+    X = scale(X)
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, train_size=0.10, random_state=101)
+    svm_linear = svm.SVC(kernel='linear')
+    svm_linear.fit(x_train, y_train)
+    predictions = svm_linear.predict(x_test)
+    confusion = metrics.confusion_matrix(y_true = y_test, y_pred = predictions)
+    class_wise = metrics.classification_report(y_true=y_test, y_pred=predictions)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(class_wise))
+    f.close()
+
+def random_forest_regressor(X, Y):
+
+    # split the data into training and testing sets
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    regr = RandomForestRegressor(n_estimators=100, max_depth=2)
+    regr.fit(X_train.values.reshape(-1,1), Y_train)
+    Y_pred = regr.predict(X_test.values.reshape(-1,1))
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(Y_pred))
+    f.close()
+
+def SVR(X, Y):
+
+    sc_X = StandardScaler()
+    sc_y = StandardScaler()
+    X = sc_X.fit_transform(X)
+    y = sc_y.fit_transform(Y)
+
+    regressor = SVR(kernel='linear')
+    regressor.fit(X,y)
+
+    y_pred = sc_y.inverse_transform((regressor.predict(sc_X.transform(np.array([[6.5]])))))
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(y_pred))
+    f.close()
 
 
 if __name__ == '__main__':
