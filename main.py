@@ -23,6 +23,7 @@ from sklearn.model_selection import train_test_split
 import pickle
 
 encode = False
+y_le = LabelEncoder() 
 
 def get_job_details():
     """Reads in metadata information about assets used by the algo"""
@@ -61,6 +62,7 @@ def preprocess_data(job_details):
     first_did = job_details['dids'][0]
     filename = job_details['files'][first_did][0]
     global encode
+    global y_le
 
     df = pd.read_csv(filename)
 
@@ -73,8 +75,7 @@ def preprocess_data(job_details):
         X[categ] = le.fit_transform(X[categ])
 
     if hasattr(Y, 'str'):
-        le = LabelEncoder()
-        Y = le.fit_transform(Y)
+        Y = y_le.fit_transform(Y)
         encode = True
     
     X = X.to_numpy()
@@ -83,9 +84,9 @@ def preprocess_data(job_details):
     return (X, Y)
 
 def decode_results(encode, Y):
+    global y_le
     if encode:
-        le = LabelEncoder()
-        Y = list(le.inverse_transform(Y))
+        Y = list(y_le.inverse_transform(Y))
 
     return(Y)
 
