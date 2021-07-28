@@ -126,9 +126,10 @@ def mlp_classifier(X, Y):
     predictions = MLPobj.predict(X_test)
     accuracy = MLPobj.score(X_test,Y_test)
     cm = confusion_matrix(Y_test,predictions)
-
-    predictions = decode_results(encode, predictions)
+    
     report = classification_report(Y_test,predictions)
+    predictions = decode_results(encode, predictions)
+    
     # now you can save it to a file
     with open('/data/outputs/filename.pkl', 'wb') as f:
         pickle.dump(MLPobj, f)
