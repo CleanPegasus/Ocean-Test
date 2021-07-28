@@ -67,17 +67,19 @@ def preprocess_data(job_details):
     X = df.drop(["target"], axis = 1)
     Y = df['target']
 
-    str_cols = [col for col in df.columns if hasattr(X[col], 'str')]
+    str_cols = [col for col in X.columns if hasattr(X[col], 'str')]
     for categ in str_cols:
         le = LabelEncoder()
         X[categ] = le.fit_transform(X[categ])
 
-    str_cols = [col for col in df.columns if hasattr(X[col], 'str')]
-    for categ in str_cols:
+    if hasattr(Y, 'str'):
         le = LabelEncoder()
-        Y[categ] = le.fit_transform(Y[categ])
+        Y = le.fit_transform(Y)
         encode = True
-
+    
+    X = X.to_numpy()
+    if not encode:
+        Y = Y.to_numpy()
     return (X, Y)
 
 def decode_results(encode, Y):
