@@ -22,6 +22,8 @@ from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 import pickle
 
+encode = False
+
 def get_job_details():
     """Reads in metadata information about assets used by the algo"""
     job = dict()
@@ -58,19 +60,32 @@ def preprocess_data(job_details):
 
     first_did = job_details['dids'][0]
     filename = job_details['files'][first_did][0]
+    global encode
 
     df = pd.read_csv(filename)
-
-    str_cols = [col for col in df.columns if hasattr(df[col], 'str')]
-    for categ in str_cols:
-        le = LabelEncoder()
-        df[categ] = le.fit_transform(df[categ])
 
     X = df.drop(["target"], axis = 1)
     Y = df['target']
 
+    str_cols = [col for col in df.columns if hasattr(X[col], 'str')]
+    for categ in str_cols:
+        le = LabelEncoder()
+        X[categ] = le.fit_transform(X[categ])
+
+    str_cols = [col for col in df.columns if hasattr(X[col], 'str')]
+    for categ in str_cols:
+        le = LabelEncoder()
+        Y[categ] = le.fit_transform(Y[categ])
+        encode = True
+
     return (X, Y)
 
+def decode_results(encode, Y):
+    if encode:
+        le = LabelEncoder()
+        Y = list(le.inverse_transform(Y))
+
+    return(Y)
 
 def decision_tree(X, Y):
 
@@ -87,8 +102,9 @@ def decision_tree(X, Y):
     cm = confusion_matrix(y_test, y_pred)
     accuracy = accuracy_score(y_test, y_pred)
 
+    y_pred = decode_results(encode, y_pred)
+
     results = {'Test Prediction': y_pred, 'Confusion Matrix': cm, 'Accuracy': accuracy}
-    
     f = open("/data/outputs/result.txt", "w")
     f.write(str(results))
     f.close()
@@ -107,8 +123,9 @@ def mlp_classifier(X, Y):
     predictions = MLPobj.predict(X_test)
     accuracy = MLPobj.score(X_test,Y_test)
     cm = confusion_matrix(Y_test,predictions)
-    report = classification_report(Y_test,predictions)
 
+    predictions = decode_results(encode, predictions)
+    report = classification_report(Y_test,predictions)
     # now you can save it to a file
     with open('/data/outputs/filename.pkl', 'wb') as f:
         pickle.dump(MLPobj, f)
@@ -127,6 +144,7 @@ def naive_bayes(X, Y):
     expected = y_test
     predicted = model.predict(X_test)
     accuracy = accuracy_score(expected, predicted)
+    predicted = decode_results(encode, predicted)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(predicted))
@@ -141,6 +159,7 @@ def k_means(X):
         
     kmeans = KMeans(n_clusters = 3, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
     y_kmeans = kmeans.fit_predict(X)
+    y_kmeans = decode_results(encode, y_kmeans)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(y_kmeans))
@@ -154,6 +173,7 @@ def knn(X, Y):
     knn.fit(X_train, y_train)
     prediction = knn.predict(X_test)
     print("Accuracy: ", accuracy_score(y_test, prediction))
+    prediction = decode_results(encode, prediction)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(prediction))
@@ -167,6 +187,7 @@ def linear_regression(X, Y):
     regressor.fit(X_Train, Y_Train)
 
     Y_Pred = regressor.predict(X_Test)
+    Y_Pred = decode_results(encode, Y_Pred)
     
     f = open("/data/outputs/result.txt", "w")
     f.write(str(Y_Pred))
@@ -182,6 +203,7 @@ def logistic_regression(X, Y):
 
     prediction = logreg.predict(X_test)
     print("Accuracy: ", accuracy_score(y_test, prediction))
+    prediction = decode_results(encode, prediction)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(prediction))
@@ -195,6 +217,7 @@ def MLP_Regressor(X,Y):
     regr = MLPRegressor(random_state = 1, max_iter = 500)
     regr.fit(X_train, Y_train)
     prediction = regr.predict(X_test)
+    prediction = decode_results(encode, prediction)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(prediction))
@@ -208,6 +231,7 @@ def svm_classification(X, Y):
     svm_linear.fit(x_train, y_train)
     predictions = svm_linear.predict(x_test)
     confusion = metrics.confusion_matrix(y_true = y_test, y_pred = predictions)
+    predictions = decode_results(encode, predictions)
     class_wise = metrics.classification_report(y_true=y_test, y_pred=predictions)
 
     f = open("/data/outputs/result.txt", "w")
@@ -220,6 +244,7 @@ def random_forest_regressor(X, Y):
     regr = RandomForestRegressor(n_estimators=100, max_depth=2)
     regr.fit(X_train.values.reshape(-1,1), Y_train)
     Y_pred = regr.predict(X_test.values.reshape(-1,1))
+    Y_pred = decode_results(encode, Y_pred)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(Y_pred))
@@ -227,15 +252,18 @@ def random_forest_regressor(X, Y):
 
 def svr(X, Y):
 
+    X, X_test, Y, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
     sc_X = StandardScaler()
     sc_y = StandardScaler()
     X = sc_X.fit_transform(X)
-    y = sc_y.fit_transform(Y)
+    Y = sc_y.fit_transform(Y)
 
     regressor = SVR(kernel='linear')
-    regressor.fit(X,y)
+    regressor.fit(X,Y)
 
-    y_pred = sc_y.inverse_transform((regressor.predict(sc_X.transform(np.array([[6.5]])))))
+    y_pred = sc_y.inverse_transform((regressor.predict(sc_X.transform(X_test))))
+    y_pred = decode_results(encode, y_pred)
 
     f = open("/data/outputs/result.txt", "w")
     f.write(str(y_pred))
@@ -250,15 +278,15 @@ if __name__ == '__main__':
 
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'decision_tree', 
                    '2907E1f782f59C7B515c80B2DDB9DaC388F377F5': 'mlp_classifier', 
-                   '2': 'naive_bayes',
-                   '3': 'k_means',
-                   '4': 'knn',
-                   '5': 'linear_regression',
-                   '6': 'logistic_regression',
-                   '7': 'MLP_Regressor',
-                   '8': 'svm_classification',
-                   '9': 'random_forest_regressor',
-                   '10': 'svr'
+                   '2331e8116b0acB7AC164d8B4F332Aa104Eb9790F': 'naive_bayes',
+                   '52D80495e56CFB241fD9e06aF7b5B96a80Ba509F': 'k_means',
+                   '47838B1A397ed620F51D079Cd456d6564f940aC8': 'knn',
+                   '3476E489Fb00058298fC8959Cb535fD3C29612c2': 'linear_regression',
+                   '50374cfC875D9a66Be3f795Ff52Cb7714819eb7A': 'logistic_regression',
+                   'e90F3344D508d017564b8EB4BB7e2E7C858365aa': 'MLP_Regressor',
+                   '03115a5Dc5fC8Ff8DA0270E61F87EEB3ed2b3798': 'svm_classification',
+                   '87F1A31A008D9cBE5c49B06dDb608df56967Cd51': 'random_forest_regressor',
+                   '60b71c78E17de953A84f3A5A876645Cf15c1A92b': 'svr'
                    }
 
     algo = did_mapping[did]
@@ -285,5 +313,6 @@ if __name__ == '__main__':
         random_forest_regressor(X, Y)
     elif(algo == 'svr'):
         svr(X, Y)
-
+    else:
+        print('Invalid DID')
 
