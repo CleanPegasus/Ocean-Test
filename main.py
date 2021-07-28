@@ -16,9 +16,14 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import ElasticNet,ElasticNetCV
+from sklearn.manifold import TSNE
+from sklearn.metrics import mean_squared_error
 from sklearn import svm
 from sklearn.svm import SVR
+from sklearn import decomposition
 from sklearn import linear_model
+from sklearn import tree
 from sklearn.model_selection import train_test_split
 import pickle
 
@@ -273,6 +278,115 @@ def svr(X, Y):
     f.write(str(y_pred))
     f.close()
 
+def elasticnet(X, Y):
+    
+    xtrain, xtest, ytrain, ytest = train_test_split(X, Y, test_size=0.15)
+
+    alphas = [0.0001, 0.001, 0.01, 0.1, 0.3, 0.5, 0.7, 1]
+
+    for a in alphas:
+        model = ElasticNet(alpha=a).fit(X,Y)   
+        score = model.score(X, Y)
+        pred_y = model.predict(X)
+        mse = mean_squared_error(Y, pred_y)   
+        print("Alpha:{0:.4f}, R2:{1:.2f}, MSE:{2:.2f}, RMSE:{3:.2f}"
+        .format(a, score, mse, np.sqrt(mse)))
+
+    elastic=ElasticNet(alpha=0.01).fit(xtrain, ytrain)
+    ypred = elastic.predict(xtest)
+    score = elastic.score(xtest, ytest)
+    mse = mean_squared_error(ytest, ypred)
+    print("R2:{0:.3f}, MSE:{1:.2f}, RMSE:{2:.2f}"
+        .format(score, mse, np.sqrt(mse)))
+
+    ypred = decode_results(encode, ypred)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(ypred))
+    f.close()
+
+    # x_ax = range(len(xtest))
+    # plt.scatter(x_ax, ytest, s=5, color="blue", label="original")
+    # plt.plot(x_ax, ypred, lw=0.8, color="red", label="predicted")
+    # plt.legend()
+    # plt.savefig('/data/outputs/plot.png')
+
+# def plot_iris_2d(x, y, title):    
+#         plt.scatter(x, y,c=y,s=70)
+#         plt.title(title, fontsize=20, y=1.03)
+#         # plt.show()
+#         plt.savefig('/data/outputs/plot.png')
+
+def t_SNE(X,Y):    
+
+    tsne = TSNE(n_components=2, n_iter=1000, random_state=42)
+    points = tsne.fit_transform(X)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(points))
+    f.close()
+
+    # plot_iris_2d(
+    #     x = points[:, 0],
+    #     y = points[:, 1],
+    #     title = 'Iris dataset visualized with t-SNE')
+
+
+
+def non_lin_svm(X,Y):
+    
+    X = scale(X)
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, train_size=0.10, random_state=101)
+
+    svm_non_linear = svm.NuSVC(gamma = 'auto')
+    svm_non_linear.fit(x_train, y_train)
+
+    predictions = svm_non_linear.predict(x_test)
+    confusion = metrics.confusion_matrix(y_true = y_test, y_pred = predictions)
+    class_wise = metrics.classification_report(y_true=y_test, y_pred=predictions)
+    predictions = decode_results(encode, predictions)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(class_wise) + '\n' + str(predictions))
+    f.close()
+
+def PCA(X,Y):
+
+    pca = decomposition.PCA(n_components=X.shape[0])
+    pca.fit(X)
+    X = pca.transform(X)
+
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(X))
+    f.close()
+
+
+def CART(X,Y):
+
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.3, random_state = 100)
+
+    clf= DecisionTreeClassifier(random_state = 100)
+    clf.fit(X_train, y_train)
+
+    Y_pred=clf.predict(X_test)
+    print(Y_pred)
+    acc = accuracy_score(y_test, Y_pred)
+    print("Accuracy:",acc)
+    
+    cm=np.array(confusion_matrix(y_test,Y_pred))
+    print(cm)
+    
+    Y_pred = decode_results(encode, Y_pred)
+
+    text_representation = tree.export_text(clf)
+    print(text_representation)
+    f = open("/data/outputs/result.txt", "w")
+    f.write('Text Representation: \n'+str(text_representation))
+    f.write('Accuracy: '+str(acc))
+    f.write('Confusion Matrix: \n'+str(cm))
+    f.write('Prediction: '+str(Y_pred))
+    f.close()
+
 
 if __name__ == '__main__':
 
@@ -290,7 +404,12 @@ if __name__ == '__main__':
                    'e90F3344D508d017564b8EB4BB7e2E7C858365aa': 'MLP_Regressor',
                    '03115a5Dc5fC8Ff8DA0270E61F87EEB3ed2b3798': 'svm_classification',
                    '87F1A31A008D9cBE5c49B06dDb608df56967Cd51': 'random_forest_regressor',
-                   '60b71c78E17de953A84f3A5A876645Cf15c1A92b': 'svr'
+                   '60b71c78E17de953A84f3A5A876645Cf15c1A92b': 'svr',
+                   '0': 'elasticnet',
+                   '1': 't_sne',
+                   '2': 'non_lin_svm',
+                   '3': 'PCA',
+                   '4': 'CART'            
                    }
 
     algo = did_mapping[did]
@@ -319,4 +438,3 @@ if __name__ == '__main__':
         svr(X, Y)
     else:
         print('Invalid DID')
-
