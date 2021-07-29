@@ -156,7 +156,9 @@ class Supervised:
         self.classification_report = classification_report(self.Y_test, self.predictions)
         self.predictions = decode_results(encode, self.predictions)
         result = str(self.predictions) + '\n' + str(self.accuracy) + '\n' + str(self.confusion_matrix) + '\n' + str(self.classification_report)
-        return result
+        f = open("/data/outputs/result.txt", "w")
+        f.write(str(result))
+        f.close()
 
 class Unsupervised:
     def __init__(self, algo, X_train,X_test,Y_train,Y_test):
@@ -181,7 +183,9 @@ class Unsupervised:
 
     def predict(self):
         self.predictions = self.model.fit_transform(self.X_train)
-        return self.predictions
+        f = open("/data/outputs/result.txt", "w")
+        f.write(str(self.predictions))
+        f.close()
 
 if __name__ == '__main__':
 
@@ -213,14 +217,10 @@ if __name__ == '__main__':
 
     if algo_type == 'unsupervised':
         unsupervised = Unsupervised(algo, X_train, Y_train, X_test, Y_test)
-        result =unsupervised.predict()
+        unsupervised.predict()
     elif algo_type == 'supervised':
         supervised = Supervised(algo, X_train,X_test,Y_train,Y_test)
         supervised.train()
-        result = supervised.predict()
+        supervised.predict()
     else:
         print('Invalid algorithm type')
-    
-    f = open("/data/outputs/result.txt", "w")
-    f.write(str(result))
-    f.close()
