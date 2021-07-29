@@ -4,7 +4,8 @@ import time
 import json
 import pandas as pd
 from sklearn import metrics
-from sklearn.metrics import classification_report,accuracy_score,confusion_matrix
+from sklearn import decomposition
+from sklearn.metrics import mean_squared_error,classification_report,accuracy_score,confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler,LabelEncoder,scale
 from sklearn.tree import DecisionTreeClassifier
@@ -17,6 +18,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import svm
+from sklearn.linear_model import ElasticNet,ElasticNetCV
+from sklearn.manifold import TSNE
 from sklearn.svm import SVR
 from sklearn import linear_model
 from sklearn.model_selection import train_test_split
@@ -92,9 +95,17 @@ def preprocess_data(job_details):
 
     return (X_train, X_test, Y_train, Y_test)
 
+def decode_results(encode, Y):
+    global y_le
+    if encode:
+        Y = list(y_le.inverse_transform(Y))
+
+    return(Y)
+
 class Supervised:
     def __init__(self, algo, X_train,X_test,Y_train,Y_test):
         sc = StandardScaler()
+        self.algo = algo
         self.X_train = sc.fit_transform(X_train)
         self.X_test = sc.transform(X_test)
         self.Y_train = Y_train
@@ -114,13 +125,42 @@ class Supervised:
         elif(algo == 'naive_bayes'):
             self.model = GaussianNB()
 
+        elif(algo == 'knn'):
+            self.model = KNeighborsClassifier(n_neighbors=3)
+
         elif(algo == 'linear_regression'):
             self.model = LinearRegression()
 
         elif(algo == 'logistic_regression'):
             self.model = LogisticRegression(C=1e5)
+        
+        elif(algo == 'MLP_Regressor'):
+            self.model = MLPRegressor(random_state = 1, max_iter = 500)
+
+        elif(algo == 'svm_classification'):
+            self.model = svm.SVC(kernel='linear')
+
+        elif(algo == 'random_forest_regressor'):
+            self.model = RandomForestRegressor(n_estimators=100, max_depth=2)
+        
+        elif(algo == 'svr'):
+            self.model = SVR(kernel='linear')
     
+        elif(algo == 'elastic_net'):
+            self.model = ElasticNet(alpha=0.01)
+
+        elif(algo == 'non_lin_svm'):
+            self.model = svm.NuSVC(gamma = 'auto')
+
+        elif(algo == 'cart'):
+            self.model = DecisionTreeClassifier(random_state = 100)
+
+
     def train(self):
+        if self.algo == 'random_forest_regressor':
+            self.X_train = self.X_train.values.reshape(-1,1)
+            self.X_test = self.X_test.values.reshape(-1,1)
+
         self.model.fit(self.X_train, self.Y_train)
 
     def predict(self):
@@ -128,6 +168,7 @@ class Supervised:
         self.accuracy = self.model.score(self.X_test, self.Y_test)
         self.confusion_matrix = confusion_matrix(self.Y_test, self.predictions)
         self.classification_report = classification_report(self.Y_test, self.predictions)
+        self.predictions = decode_results(encode, self.predictions)
         result = str(self.predictions) + '\n' + str(self.accuracy) + '\n' + str(self.confusion_matrix) + '\n' + str(self.classification_report)
         return result
 
@@ -140,20 +181,18 @@ class Unsupervised:
         self.Y_train = Y_train
         self.Y_test = Y_test
 
-        if(algo == 'KMeans'):
-            self.model = KMeans(n_clusters=2, random_state=0)
+        if(algo == 'k_means'):
+            self.model = KMeans(n_clusters = 3, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
         
-        elif(algo == 'Gaussian_Mixture'):
-            self.model = GaussianMixture(n_components=2, random_state=0)
+        elif(algo == 'pca'):
+            self.model = decomposition.PCA(n_components=self.X_train.shape[0])
         
-        elif(algo == 'DBSCAN'):
-            self.model = DBSCAN(eps=0.1)
+        elif(algo == 't_sne'):
+            self.model = TSNE(n_components=2, n_iter=1000, random_state=42)
 
-    def train(self):
-        self.model.fit(self.X_train)
 
     def predict(self):
-        self.predictions = self.model.predict(self.X_test)
+        self.predictions = self.model.fit_transform(self.X_train)
         return self.predictions
 
 
@@ -169,19 +208,19 @@ if __name__ == '__main__':
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'supervised/decision_tree', 
                    '2907E1f782f59C7B515c80B2DDB9DaC388F377F5': 'supervised/mlp_classifier', 
                    '2331e8116b0acB7AC164d8B4F332Aa104Eb9790F': 'supervised/naive_bayes',
-                   '52D80495e56CFB241fD9e06aF7b5B96a80Ba509F': 'k_means',
-                   '47838B1A397ed620F51D079Cd456d6564f940aC8': 'unsupervised/knn',
+                   '52D80495e56CFB241fD9e06aF7b5B96a80Ba509F': 'unsupervised/k_means',
+                   '47838B1A397ed620F51D079Cd456d6564f940aC8': 'supervised/knn',
                    '3476E489Fb00058298fC8959Cb535fD3C29612c2': 'supervised/linear_regression',
                    '50374cfC875D9a66Be3f795Ff52Cb7714819eb7A': 'supervised/logistic_regression',
                    'e90F3344D508d017564b8EB4BB7e2E7C858365aa': 'supervised/MLP_Regressor',
                    '03115a5Dc5fC8Ff8DA0270E61F87EEB3ed2b3798': 'supervised/svm_classification',
                    '87F1A31A008D9cBE5c49B06dDb608df56967Cd51': 'supervised/random_forest_regressor',
                    '60b71c78E17de953A84f3A5A876645Cf15c1A92b': 'supervised/svr',
-                   '0': 'supervised/elasticnet',
+                   '0': 'supervised/elastic_net',
                    '1': 'unsupervised/t_sne',
                    '2': 'supervised/non_lin_svm',
-                   '3': 'unsupervised/PCA',
-                   '4': 'supervised/CART'            
+                   '3': 'unsupervised/pca',
+                   '4': 'supervised/cart'            
                    }
 
     algo_type = did_mapping[did].split('/')[0]
@@ -192,7 +231,6 @@ if __name__ == '__main__':
 
     if algo_type == 'unsupervised':
         unsupervised = Unsupervised(algo, X_train, Y_train, X_test, Y_test)
-        unsupervised.train()
         result =unsupervised.predict()
         print(result)
     elif algo_type == 'supervised':
