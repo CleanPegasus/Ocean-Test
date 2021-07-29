@@ -1,29 +1,12 @@
-import numpy as np
 import os
 import time
 import json
 import pandas as pd
-from sklearn import metrics
-from sklearn import decomposition
+import numpy as np
+import pickle
 from sklearn.metrics import mean_squared_error,classification_report,accuracy_score,confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler,LabelEncoder,scale
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.cluster import KMeans
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.neural_network import MLPRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn import svm
-from sklearn.linear_model import ElasticNet,ElasticNetCV
-from sklearn.manifold import TSNE
-from sklearn.svm import SVR
-from sklearn import linear_model
-from sklearn.model_selection import train_test_split
-import pickle
 
 encode = False
 y_le = LabelEncoder() 
@@ -59,22 +42,15 @@ def get_job_details():
     return job
 
 def preprocess_data(job_details):
-    '''
-    This function fetches the file from the compute job 
-    metadata and returns the X and Y(target) dataframes 
-    as numpy arrays.
-    '''
     print('Starting compute job with the following input information:')
     print(json.dumps(job_details, sort_keys=True, indent=4))
 
     first_did = job_details['dids'][0]
     filename = job_details['files'][first_did][0]
-    # filename = job_details # remove this later
     global encode
     global y_le
 
     df = pd.read_csv(filename)
-
     X = df.drop(["target"], axis = 1)
     Y = df['target']
 
@@ -92,14 +68,12 @@ def preprocess_data(job_details):
         Y = Y.to_numpy()
     
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
-
     return (X_train, X_test, Y_train, Y_test)
 
 def decode_results(encode, Y):
     global y_le
     if encode:
         Y = list(y_le.inverse_transform(Y))
-
     return(Y)
 
 class Supervised:
@@ -116,45 +90,57 @@ class Supervised:
         self.confusion_matrix = None
         self.classification_report = None
 
-        if(algo == 'decision_tree'):
+        if(self.algo == 'decision_tree'):
+            from sklearn.tree import DecisionTreeClassifier
             self.model = DecisionTreeClassifier(criterion = 'entropy', random_state = 0)
 
-        elif(algo == 'mlp_classifier'):
+        elif(self.algo == 'mlp_classifier'):
+            from sklearn.neural_network import MLPClassifier
             self.model = MLPClassifier(hidden_layer_sizes=(50), activation='tanh', alpha =0.009, max_iter=250 )
 
-        elif(algo == 'naive_bayes'):
+        elif(self.algo == 'naive_bayes'):
+            from sklearn.naive_bayes import GaussianNB
             self.model = GaussianNB()
 
-        elif(algo == 'knn'):
+        elif(self.algo == 'knn'):
+            from sklearn.neighbors import KNeighborsClassifier
             self.model = KNeighborsClassifier(n_neighbors=3)
 
-        elif(algo == 'linear_regression'):
+        elif(self.algo == 'linear_regression'):
+            from sklearn.linear_model import LinearRegression
             self.model = LinearRegression()
 
-        elif(algo == 'logistic_regression'):
+        elif(self.algo == 'logistic_regression'):
+            from sklearn.linear_model import LogisticRegression
             self.model = LogisticRegression(C=1e5)
         
-        elif(algo == 'MLP_Regressor'):
+        elif(self.algo == 'MLP_Regressor'):
+            from sklearn.neural_network import MLPRegressor
             self.model = MLPRegressor(random_state = 1, max_iter = 500)
 
-        elif(algo == 'svm_classification'):
+        elif(self.algo == 'svm_classification'):
+            from sklearn import svm
             self.model = svm.SVC(kernel='linear')
 
-        elif(algo == 'random_forest_regressor'):
+        elif(self.algo == 'random_forest_regressor'):
+            from sklearn.ensemble import RandomForestRegressor
             self.model = RandomForestRegressor(n_estimators=100, max_depth=2)
         
-        elif(algo == 'svr'):
+        elif(self.algo == 'svr'):
+            from sklearn.svm import SVR
             self.model = SVR(kernel='linear')
     
-        elif(algo == 'elastic_net'):
+        elif(self.algo == 'elastic_net'):
+            from sklearn.linear_model import ElasticNet,ElasticNetCV
             self.model = ElasticNet(alpha=0.01)
 
-        elif(algo == 'non_lin_svm'):
+        elif(self.algo == 'non_lin_svm'):
+            from sklearn import svm
             self.model = svm.NuSVC(gamma = 'auto')
 
-        elif(algo == 'cart'):
+        elif(self.algo == 'cart'):
+            from sklearn.tree import DecisionTreeClassifier
             self.model = DecisionTreeClassifier(random_state = 100)
-
 
     def train(self):
         if self.algo == 'random_forest_regressor':
@@ -181,29 +167,26 @@ class Unsupervised:
         self.Y_train = Y_train
         self.Y_test = Y_test
 
-        if(algo == 'k_means'):
+        if(self.algo == 'k_means'):
+            from sklearn.cluster import KMeans
             self.model = KMeans(n_clusters = 3, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
         
-        elif(algo == 'pca'):
+        elif(self.algo == 'pca'):
+            from sklearn import decomposition
             self.model = decomposition.PCA(n_components=self.X_train.shape[0])
         
-        elif(algo == 't_sne'):
+        elif(self.algo == 't_sne'):
+            from sklearn.manifold import TSNE
             self.model = TSNE(n_components=2, n_iter=1000, random_state=42)
-
 
     def predict(self):
         self.predictions = self.model.fit_transform(self.X_train)
         return self.predictions
 
-
-
 if __name__ == '__main__':
 
     job = get_job_details()
     did = job['algo']['did']
-
-    # job = 'iris.csv'
-    # did = '2907E1f782f59C7B515c80B2DDB9DaC388F377F5'
 
     did_mapping = {'07A7287F45471dA8d7BddC647d49f03a54672E38': 'supervised/decision_tree', 
                    '2907E1f782f59C7B515c80B2DDB9DaC388F377F5': 'supervised/mlp_classifier', 
@@ -228,16 +211,13 @@ if __name__ == '__main__':
 
     X_train,X_test,Y_train,Y_test = preprocess_data(job)
 
-
     if algo_type == 'unsupervised':
         unsupervised = Unsupervised(algo, X_train, Y_train, X_test, Y_test)
         result =unsupervised.predict()
-        # print(result)
     elif algo_type == 'supervised':
         supervised = Supervised(algo, X_train,X_test,Y_train,Y_test)
         supervised.train()
         result = supervised.predict()
-        # print(result)
     else:
         print('Invalid algorithm type')
     
