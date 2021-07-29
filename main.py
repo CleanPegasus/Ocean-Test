@@ -232,9 +232,15 @@ if __name__ == '__main__':
     if algo_type == 'unsupervised':
         unsupervised = Unsupervised(algo, X_train, Y_train, X_test, Y_test)
         result =unsupervised.predict()
-        print(result)
+        # print(result)
     elif algo_type == 'supervised':
         supervised = Supervised(algo, X_train,X_test,Y_train,Y_test)
         supervised.train()
         result = supervised.predict()
-        print(result)
+        # print(result)
+    else:
+        print('Invalid algorithm type')
+    
+    f = open("/data/outputs/result.txt", "w")
+    f.write(str(result))
+    f.close()
